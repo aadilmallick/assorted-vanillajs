@@ -58,8 +58,8 @@
     },
     "./toast": {
       "import": {
-        "default": "./dist/Toast.es.js",
-        "types": "./dist/toast/Toast.d.ts"
+        "default": "./dist/animated-toast.es.js",
+        "types": "./dist/animated-toast/animated-toast.d.ts"
       }
     }
   },

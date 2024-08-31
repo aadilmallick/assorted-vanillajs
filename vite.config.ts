@@ -17,7 +17,7 @@ export default defineConfig({
         path.resolve(__dirname, "src/card-gradient/card-gradient.ts"),
         path.resolve(__dirname, "src/border-gradient/border-gradient.ts"),
         path.resolve(__dirname, "src/web-components/web-components.ts"),
-        path.resolve(__dirname, "src/toast/Toast.ts"),
+        path.resolve(__dirname, "src/animated-toast/animated-toast.ts"),
       ],
       fileName: (format, entryName) => {
         return `${entryName}.${format}.js`;
