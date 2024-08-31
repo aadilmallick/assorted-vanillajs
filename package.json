@@ -1,6 +1,5 @@
 {
   "name": "assorted-vanillajs",
-  "private": true,
   "version": "1.0.0",
   "type": "module",
   "module": "./dist/main.es.js",
