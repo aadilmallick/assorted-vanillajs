@@ -10,7 +10,7 @@ export class CSSVariablesManager<
     return `--${name}`;
   }
 
-  set(name: keyof T, value: T[keyof T]) {
+  set<K extends keyof T>(name: K, value: T[K]) {
     this.element.style.setProperty(
       this.formatName(name as string),
       String(value)

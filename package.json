@@ -1,10 +1,9 @@
 {
   "name": "assorted-vanillajs",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
   "module": "./dist/main.es.js",
-  "typings": "./dist/main.d.ts",
   "files": [
     "dist"
   ],
@@ -20,6 +19,48 @@
         "default": "./dist/web-api-utils.es.js",
         "types": "./dist/web-api-utils/web-api-utils.d.ts"
       }
+    },
+    "./text-animations": {
+      "import": {
+        "default": "./dist/text-animations.es.js",
+        "types": "./dist/text-animations/text-animations.d.ts"
+      }
+    },
+    "./page-loader": {
+      "import": {
+        "default": "./dist/page-loader.es.js",
+        "types": "./dist/page-loader/page-loader.d.ts"
+      }
+    },
+    "./card-gradient": {
+      "import": {
+        "default": "./dist/card-gradient.es.js",
+        "types": "./dist/card-gradient/card-gradient.d.ts"
+      }
+    },
+    "./border-gradient": {
+      "import": {
+        "default": "./dist/border-gradient.es.js",
+        "types": "./dist/border-gradient/border-gradient.d.ts"
+      }
+    },
+    "./color-logger": {
+      "import": {
+        "default": "./dist/color-logger.es.js",
+        "types": "./dist/color-logger/color-logger.d.ts"
+      }
+    },
+    "./web-components": {
+      "import": {
+        "default": "./dist/web-components.es.js",
+        "types": "./dist/web-components/web-components.d.ts"
+      }
+    },
+    "./toast": {
+      "import": {
+        "default": "./dist/Toast.es.js",
+        "types": "./dist/toast/Toast.d.ts"
+      }
     }
   },
   "scripts": {
@@ -34,5 +75,13 @@
     "tslib": "^2.7.0",
     "typescript": "^5.5.3",
     "vite": "^5.4.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+"
+  },
+  "author": {
+    "email": "aadiltj.mallick@gmail.com",
+    "name": "Aadil Mallick"
   }
 }
