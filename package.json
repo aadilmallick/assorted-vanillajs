@@ -65,7 +65,8 @@
   "scripts": {
     "build": "tsc && vite build",
     "build:watch": "tsc && vite build --watch",
-    "dev": "vite"
+    "dev": "vite --config vite.config.website.ts",
+    "build:site": "vite build --config vite.config.website.ts"
   },
   "devDependencies": {
     "@rollup/plugin-typescript": "^11.1.6",
