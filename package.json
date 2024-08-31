@@ -8,6 +8,20 @@
   "files": [
     "dist"
   ],
+  "exports": {
+    ".": {
+      "import": {
+        "default": "./dist/main.es.js",
+        "types": "./dist/main.d.ts"
+      }
+    },
+    "./web-api-utils": {
+      "import": {
+        "default": "./dist/web-api-utils.es.js",
+        "types": "./dist/web-api-utils/web-api-utils.d.ts"
+      }
+    }
+  },
   "scripts": {
     "build": "tsc && vite build",
     "build:watch": "tsc && vite build --watch",

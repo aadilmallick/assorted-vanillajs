@@ -1,11 +1,11 @@
-import { CSSVariablesManager } from "./domUtils/CSSVariablesManager";
+import { CSSVariablesManager } from "./dom-utils/CSSVariablesManager";
 import {
   DOM,
   AbortControllerManager,
   FullscreenModel,
   LocalStorageBrowser,
-} from "./domUtils/domutils";
-import { debounce, throttle } from "./domUtils/timerUtils";
+} from "./dom-utils/domutils";
+import { debounce, throttle } from "./dom-utils/timerUtils";
 import {
   createReactiveFunction,
   createReactiveProxy,
@@ -16,11 +16,11 @@ import {
   Subject,
   createReactiveProxyMultipleProps,
   createReactiveProxyWithEvent,
-} from "./domUtils/patternUtils";
+} from "./dom-utils/patternUtils";
 import {
   CustomEventElementClass,
   CustomEventManager,
-} from "./domUtils/eventUtils";
+} from "./dom-utils/eventUtils";
 
 export {
   debounce,

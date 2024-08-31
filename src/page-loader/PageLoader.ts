@@ -1,4 +1,4 @@
-import { CSSVariablesManager } from "../domUtils/CSSVariablesManager";
+import { CSSVariablesManager } from "../dom-utils/CSSVariablesManager";
 
 interface Variables {
   size: `${number}rem`;

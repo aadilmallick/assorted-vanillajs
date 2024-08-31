@@ -1,5 +1,5 @@
-import { CSSVariablesManager } from "../domUtils/CSSVariablesManager";
-import { throttle } from "../domUtils/timerUtils";
+import { CSSVariablesManager } from "../dom-utils/CSSVariablesManager";
+import { throttle } from "../dom-utils/timerUtils";
 
 export default class CardGradientHoverCreator {
   private overlay: HTMLElement;

@@ -8,8 +8,13 @@ export default defineConfig({
     minify: true,
     reportCompressedSize: true,
     lib: {
-      entry: [path.resolve(__dirname, "src/main.ts")],
-      fileName: "main",
+      entry: [
+        path.resolve(__dirname, "src/main.ts"),
+        path.resolve(__dirname, "src/web-api-utils/web-api-utils.ts"),
+      ],
+      fileName: (format, entryName) => {
+        return `${entryName}.${format}.js`;
+      },
       formats: ["es"],
     },
     rollupOptions: {
