@@ -2,6 +2,7 @@ type ToastType = "info" | "success" | "danger" | "default" | "warning";
 type ToastManagerOptions = {
   timeout?: number;
   position?: "top-right" | "top-left" | "bottom-right" | "bottom-left";
+  containerElement?: HTMLElement;
 };
 export class ToastManager {
   private toastContainer?: HTMLElement;
@@ -130,7 +131,9 @@ export class ToastManager {
     toastContainer.classList.add(this.options?.position || "bottom-right");
 
     // add toast container to body
-    document.body.appendChild(toastContainer);
+    (this.options.containerElement || document.body).appendChild(
+      toastContainer
+    );
 
     // set toast container
     this.toastContainer = toastContainer;
