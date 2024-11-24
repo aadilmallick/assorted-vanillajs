@@ -3,6 +3,7 @@ type ToastManagerOptions = {
   timeout?: number;
   position?: "top-right" | "top-left" | "bottom-right" | "bottom-left";
   containerElement?: HTMLElement;
+  id?: string;
 };
 export class ToastManager {
   private toastContainer?: HTMLElement;
@@ -113,6 +114,9 @@ export class ToastManager {
 
   constructor(options: ToastManagerOptions = {}) {
     this.options = { timeout: 3000, position: "bottom-right", ...options };
+    if (this.options.id) {
+      this.toastsContainerId = this.options.id;
+    }
   }
 
   private addToastStyles() {
