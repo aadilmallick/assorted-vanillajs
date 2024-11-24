@@ -3,13 +3,15 @@ type ToastManagerOptions = {
   timeout?: number;
   position?: "top-right" | "top-left" | "bottom-right" | "bottom-left";
   containerElement?: HTMLElement;
+  id?: string;
 };
 export class ToastManager {
   private toastContainer?: HTMLElement;
   private options: ToastManagerOptions;
   private toastsContainerId = `toasts-${crypto.randomUUID()}`;
 
-  ToastsCSS = `
+  public get ToastsCSS() {
+    return `
     #${this.toastsContainerId} {
       position: fixed;
       z-index: 9999 !important;
@@ -106,13 +108,27 @@ export class ToastManager {
       }
     }
   `;
+  }
 
   public get containerElement() {
     return this.toastContainer;
   }
 
+  /**
+   *
+   * @param options
+   *
+   * When passing in an id, you must make sure its a valid id, as in
+   * it doesn't start with a number.
+   */
   constructor(options: ToastManagerOptions = {}) {
     this.options = { timeout: 3000, position: "bottom-right", ...options };
+    if (this.options.id) {
+      if (this.options.id.match(/^\d/)) {
+        throw new Error("Invalid id. Id cannot start with a number");
+      }
+      this.toastsContainerId = this.options.id;
+    }
   }
 
   private addToastStyles() {
@@ -123,6 +139,7 @@ export class ToastManager {
 
   setup() {
     const element = document.getElementById(this.toastsContainerId);
+    this.toastContainer = element;
     if (element) return;
 
     this.addToastStyles();
