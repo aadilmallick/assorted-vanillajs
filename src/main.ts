@@ -1,9 +1,12 @@
 import { CSSVariablesManager } from "./dom-utils/CSSVariablesManager";
 import {
   DOM,
-  AbortControllerManager,
   FullscreenModel,
   LocalStorageBrowser,
+  DateModel,
+  css,
+  html,
+  MatchMedia,
 } from "./dom-utils/domutils";
 import { debounce, throttle } from "./dom-utils/timerUtils";
 import {
@@ -27,7 +30,6 @@ export {
   throttle,
   CSSVariablesManager,
   DOM,
-  AbortControllerManager,
   FullscreenModel,
   LocalStorageBrowser,
   createReactiveProxy,
@@ -41,4 +43,8 @@ export {
   createReactiveFunction,
   CustomEventElementClass,
   CustomEventManager,
+  DateModel,
+  css,
+  html,
+  MatchMedia,
 };

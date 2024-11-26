@@ -26,6 +26,33 @@ export class DOM {
   }
 }
 
+export class DOMLifecycleManager {
+  static documentIsReady() {
+    return new Promise<boolean>((resolve) => {
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", () => resolve(true));
+      } else {
+        resolve(true);
+      }
+    });
+  }
+
+  static onWindowClosed(callback: () => void) {
+    window.addEventListener("unload", callback);
+  }
+
+  static beforeWindowClosed(callback: () => void) {
+    window.addEventListener("beforeunload", callback);
+  }
+
+  static preventWindowClose(message: string) {
+    window.addEventListener("beforeunload", (e) => {
+      e.preventDefault();
+      return message;
+    });
+  }
+}
+
 export function html(strings: TemplateStringsArray, ...values: any[]) {
   let str = "";
   strings.forEach((string, i) => {
@@ -40,25 +67,6 @@ export function css(strings: TemplateStringsArray, ...values: any[]) {
     str += string + (values[i] || "");
   });
   return str;
-}
-
-export class CSSVariablesManager<T = Record<string, string>> {
-  constructor(private element: HTMLElement) {}
-
-  private formatName(name: string) {
-    if (name.startsWith("--")) {
-      return name;
-    }
-    return `--${name}`;
-  }
-
-  set(name: keyof T, value: string) {
-    this.element.style.setProperty(this.formatName(name as string), value);
-  }
-
-  get(name: keyof T) {
-    return this.element.style.getPropertyValue(this.formatName(name as string));
-  }
 }
 
 export class LocalStorageBrowser<T extends Record<string, any>> {
@@ -151,5 +159,19 @@ export class FullscreenModel {
 
   get isFullscreenEnabled() {
     return document.fullscreenEnabled;
+  }
+}
+
+export class MatchMedia {
+  static isMobile() {
+    const match = window.matchMedia("(pointer:coarse)");
+    return match && match.matches;
+  }
+
+  static isDarkMode() {
+    return (
+      window.matchMedia &&
+      window.matchMedia("(prefers-color-scheme: dark)").matches
+    );
   }
 }
