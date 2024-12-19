@@ -257,7 +257,13 @@ Setting the HTML content and CSS Styling should be pretty straight forward, but 
 - `attributeChangedCallback()`: This is where you should handle the changes of the observed attributes. The method receives the attribute name, the old value and the new value.
 - `registerSelf()`: This is a static method that registers the element to the custom elements registry. You should call this method in your main script file.
 
-Your constructor should just be a place to set up class variables, not do anything DOM related. Always call `super()` in the constructor.
+:::tip
+Your constructor should just be a place to set up class variables, not do anything DOM related. Always call `super()` in the constructor. You cannot access any attributes with `this.getAttribute()` in the constructor, but you can access `this.constructor` to get the class. Just to be safe, only do the `super()` bare minimum in the constructor and do all of your actual setup and work in the `connectedCallback()` method.
+:::
+
+:::warning
+The `connectedCallback()` method can be called more than once, so if you need any one time setup, you need to make sure you only do it once. You can use a boolean flag to check if you've already done the setup.
+:::
 
 Let's talk about some useful methods and properties you inherit from the base web component class:
 
