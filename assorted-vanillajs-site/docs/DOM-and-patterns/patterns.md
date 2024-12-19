@@ -32,6 +32,39 @@ export class ConcreteObserver<T> implements Observable<T> {
 }
 ```
 
+### Async reactive store
+
+```ts
+class AsyncReactiveStore<T extends Record<string, any>> {
+  public data: T;
+  private subscribers: Function[];
+  constructor(initialData: T) {
+    this.data = initialData;
+    this.subscribers = [];
+  }
+
+  // Subscribe to changes in the data
+  subscribe(callback: (key: keyof T, value: T[keyof T]) => Promise<void>) {
+    if (typeof callback !== "function") {
+      throw new Error("Callback must be a function");
+    }
+    this.subscribers.push(callback);
+  }
+
+  // Update the data and wait for all updates to complete
+  async set(key: keyof T, value: T[keyof T]) {
+    this.data[key] = value;
+
+    // Call the subscribed function and wait for it to resolve
+    const updates = this.subscribers.map(async (callback) => {
+      await callback(key, value);
+    });
+
+    await Promise.allSettled(updates);
+  }
+}
+```
+
 ## Proxies
 
 ```ts
