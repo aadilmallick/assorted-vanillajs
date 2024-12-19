@@ -19,6 +19,13 @@ type Selector = {
   <E extends Element = Element>(selectors: string): E | null;
 };
 
+/**
+ * Tips for using this class:
+ *
+ * 1. Always call connectedCallback() and always do super.connectedCallback() in the child class.
+ * Always do DOM stuff in connectedCallback() and not in the constructor.
+ */
+
 export default abstract class WebComponent<
   T extends readonly string[] = readonly string[]
 > extends HTMLElement {
@@ -58,6 +65,7 @@ export default abstract class WebComponent<
     this.styles.textContent = css;
   }
 
+  private templateId: string;
   constructor(options: {
     templateId: string; // template id
     HTMLContent?: string; // html content of template
@@ -66,16 +74,18 @@ export default abstract class WebComponent<
   }) {
     // 1. always call super()
     super();
+    this.templateId = options.templateId;
     // 2. create shadow DOM and create template
     this.shadow = this.attachShadow({ mode: "open" });
+    this.$ = this.shadow.querySelector.bind(this.shadow);
+
     this.styles = document.createElement("style");
     this.template = WebComponent.createTemplate(
       options.templateId,
       options.HTMLContent ??
         (this.constructor as typeof WebComponent).HTMLContent
     );
-    // create utility selector
-    this.$ = this.shadow.querySelector.bind(this.shadow);
+
     // 3. attach styles
     if (options.cssContent) this.styles.textContent = options.cssContent;
     else if (options.cssFileName) this.loadExternalCSS(options.cssFileName);
@@ -96,12 +106,14 @@ export default abstract class WebComponent<
   // called when element is inserted to the DOM
   connectedCallback() {
     this.createComponent();
+    console.log(`${this.templateId}: connectedCallback finished executing`);
   }
 
-  createComponent() {
+  private createComponent() {
     const content = this.template.content.cloneNode(true);
     this.shadow.appendChild(this.styles);
     this.shadow.appendChild(content);
+    // create utility selector
   }
 
   // triggered when element is removed from document
@@ -117,9 +129,9 @@ export default abstract class WebComponent<
   // region ATTRIBUTES
 
   // override this getter to specify which attributes to observe
-  //   static get observedAttributes() {
-  //     return [] as string[];
-  //   }
+  static get observedAttributes() {
+    return [] as readonly string[];
+  }
 
   // gets an attribute from the observedAttributes
   getObservableAttr(attrName: T[number]) {
@@ -137,20 +149,119 @@ export default abstract class WebComponent<
     this.removeAttribute(attrName);
   }
 
-  // listens to changes fo attributes from the observedAttributes
+  // listens to changes of attributes from the observedAttributes
   attributeChangedCallback(
     attrName: T[number],
     oldVal: string,
     newVal: string
   ) {
-    console.log(
-      "observedAttributes changed",
-      attrName,
-      "from",
-      oldVal,
-      "to",
-      newVal
-    );
+    console.log("attributeChangedCallback run", attrName, oldVal, newVal);
   }
 }
 ```
+
+This is an example of how you can inherit from this class:
+
+```ts
+import { css, CSSVariablesManager, DOM, html } from "../Dom";
+import WebComponent from "./WebComponent";
+
+interface Props {
+  "data-size"?: `${number}rem`;
+  "data-color"?: string;
+  "data-time"?: `${number}s`;
+  "data-loader-background"?: string;
+}
+
+const defaults: Props = {
+  "data-size": "4rem",
+  "data-color": "orange",
+  "data-time": "1.5s",
+  "data-loader-background": "#222",
+};
+type PropsArray = (keyof Props)[];
+const observableAttributes = Object.keys(defaults) as PropsArray;
+const tagName = "page-loader";
+
+export class PageLoaderElement extends WebComponent<PropsArray> {
+  /**
+   * Scoped shadow-DOM CSS styling for element
+   */
+  static override get CSSContent() {
+    return css``;
+  }
+
+  /**
+   * HTML content for element
+   */
+  static override get HTMLContent() {
+    return html``;
+  }
+
+  /**
+   * Register element to custom elements
+   */
+  static registerSelf() {
+    WebComponent.register(tagName, PageLoaderElement);
+  }
+
+  constructor() {
+    super({
+      templateId: tagName,
+    });
+  }
+
+  /**
+   * Deal with DOM insertions and querying here
+   * when element first gets added to DOM
+   */
+  override connectedCallback(): void {
+    super.connectedCallback();
+  }
+
+  /**
+   * Essential getter to listen to changes on
+   * the special observed attributes.
+   */
+  static override get observedAttributes() {
+    return observableAttributes;
+  }
+
+  /**
+   *
+   * Deal with any observable attribute changes here
+   */
+  override attributeChangedCallback(
+    attrName: keyof Props,
+    oldVal: string,
+    newVal: string
+  ): void {}
+}
+
+declare global {
+  namespace JSX {
+    interface IntrinsicElements {
+      [tagName]: React.DetailedHTMLProps<
+        React.HTMLAttributes<HTMLElement> & Props,
+        HTMLElement
+      >;
+    }
+  }
+}
+```
+
+Setting the HTML content and CSS Styling should be pretty straight forward, but let's talk about the overrides:
+
+- `connectedCallback()`: This is where you should do all your DOM manipulation. This is the first method that gets called when the element is added to the DOM.
+- `observedAttributes`: This is a getter that returns an array of strings. These strings are the names of the attributes that you want to observe. When these attributes change, the `attributeChangedCallback` method gets called.
+- `attributeChangedCallback()`: This is where you should handle the changes of the observed attributes. The method receives the attribute name, the old value and the new value.
+- `registerSelf()`: This is a static method that registers the element to the custom elements registry. You should call this method in your main script file.
+
+Your constructor should just be a place to set up class variables, not do anything DOM related. Always call `super()` in the constructor.
+
+Let's talk about some useful methods and properties you inherit from the base web component class:
+
+- `this.$`: This is a utility selector that you can use to query the shadow DOM. It's a function that you can call with a CSS selector string and it will return the element that matches the selector.
+- `this.getObservableAttr(attrName)`: This is a method that you can use to get the value of an observed attribute.
+- `this.setObservableAttr(attrName, value)`: This is a method that you can use to set the value of an observed attribute.
+- `this.removeObservableAttr(attrName)`: This is a method that you can use to remove an observed attribute.

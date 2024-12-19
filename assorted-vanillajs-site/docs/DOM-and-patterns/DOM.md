@@ -208,7 +208,13 @@ export function css(strings: TemplateStringsArray, ...values: any[]) {
 export class CSSVariablesManager<
   T extends Record<string, any> = Record<string, string>
 > {
-  constructor(private element: HTMLElement) {}
+  constructor(private element: HTMLElement, defaultValues?: T) {
+    if (defaultValues) {
+      Object.entries(defaultValues).forEach(([key, value]) => {
+        this.set(key, value);
+      });
+    }
+  }
 
   private formatName(name: string) {
     if (name.startsWith("--")) {
