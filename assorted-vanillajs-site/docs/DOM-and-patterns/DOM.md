@@ -287,6 +287,24 @@ export class DOMLifecycleManager {
     window.addEventListener("beforeunload", callback);
   }
 
+  static get pageIsFocused() {
+    return document.hasFocus();
+  }
+
+  static get pageIsVisible() {
+    return !document.hidden;
+  }
+
+  static onVisibilityChange(callback: (isVisible: boolean) => void) {
+    document.addEventListener("visibilitychange", () => {
+      callback(this.pageIsVisible);
+    });
+  }
+
+  static onMemoryAboutToUnload(callback: () => void) {
+    window.addEventListener("freeze", callback);
+  }
+
   static preventWindowClose(message: string) {
     window.addEventListener("beforeunload", (e) => {
       e.preventDefault();
@@ -349,7 +367,9 @@ export class ScrollManager {
 }
 ```
 
-## Permissions Manager
+## Navigator stuff
+
+### Permissions
 
 ```ts
 type ChromePermissionName =
@@ -365,6 +385,88 @@ export class NavigatorPermissions {
       name: permissionName as PermissionName,
     });
     return result.state;
+  }
+}
+```
+
+### Connectivity
+
+```ts
+export class NavigatorConnection {
+  static get isOnline() {
+    return navigator.onLine;
+  }
+
+  static get bandwidth() {
+    return navigator.connection.downlink;
+  }
+
+  onNetworkChange(callback: (type: "4g" | "3g" | "2g" | "slow-2g") => void) {
+    navigator.connection.addEventListener("change", () => {
+      callback(navigator.connection.effectiveType);
+    });
+  }
+
+  onConnectivityChange(callback: (isOnline: boolean) => void) {
+    const offlineCb = () => callback(false);
+    const onlineCb = () => callback(true);
+    window.addEventListener("offline", offlineCb);
+    window.addEventListener("online", onlineCb);
+    return {
+      unsubscribe() {
+        window.removeEventListener("offline", offlineCb);
+        window.removeEventListener("online", onlineCb);
+      },
+    };
+  }
+}
+```
+
+### User agent
+
+```ts
+export class NavigatorUserAgent {
+  static get userAgentString() {
+    return navigator.userAgent;
+  }
+
+  static get isOnMobile() {
+    return navigator.userAgentData.mobile;
+  }
+
+  static get OS(): "windows" | "mac" | "linux" | "android" | "ios" | "other" {
+    return navigator.userAgentData.platform;
+  }
+}
+```
+
+### Sharing
+
+```ts
+export class NavigatorShare {
+  static async share(data: {
+    title: string;
+    text: string;
+    url: string;
+    files?: File[];
+  }) {
+    try {
+      if (!this.canShare(data)) return false;
+      await navigator.share(data);
+      return true;
+    } catch (error) {
+      console.error("Error sharing", error);
+      return false;
+    }
+  }
+
+  static canShare(data: {
+    title: string;
+    text: string;
+    url: string;
+    files?: File[];
+  }) {
+    return navigator.canShare(data);
   }
 }
 ```

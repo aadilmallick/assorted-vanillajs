@@ -73,3 +73,71 @@ export class AnimationModel {
   }
 }
 ```
+
+## WebAnimationsAPI
+
+```ts
+// for animating an element simply
+export class WebAnimationModel {
+  constructor(private element: HTMLElement) {}
+
+  animate(keyframes: Keyframe[], animationOptions: KeyframeAnimationOptions) {
+    return this.element.animate(keyframes, animationOptions);
+  }
+
+  animateEvenly(
+    keyframes: PropertyIndexedKeyframes,
+    animationOptions: KeyframeAnimationOptions
+  ) {
+    return this.element.animate(keyframes, animationOptions);
+  }
+
+  animateTo(keyframe: Keyframe, animationOptions: KeyframeAnimationOptions) {
+    return this.element.animate([keyframe], animationOptions);
+  }
+}
+
+// for wrapping an Animation object instance
+export class AnimationModel {
+  public pause: () => void;
+  public play: () => void;
+  public reverse: () => void;
+  public finish: () => void;
+  public cancel: () => void;
+  public updatePlaybackRate: (rate: number) => void;
+  public commitStyles: () => void;
+  constructor(public animation: Animation) {
+    this.pause = this.animation.pause.bind(this.animation);
+    this.play = this.animation.play.bind(this.animation);
+    this.reverse = this.animation.reverse.bind(this.animation);
+    this.finish = this.animation.finish.bind(this.animation);
+    this.cancel = this.animation.cancel.bind(this.animation);
+    this.updatePlaybackRate = this.animation.updatePlaybackRate.bind(
+      this.animation
+    );
+    this.commitStyles = this.animation.commitStyles.bind(this.animation);
+  }
+
+  public get duration() {
+    return this.animation.effect?.getComputedTiming().duration;
+  }
+
+  public async getStatus() {
+    const ready = await this.animation.ready;
+    const finished = await this.animation.finished;
+    return { ready, finished };
+  }
+
+  seekTo(time: number) {
+    this.animation.currentTime = time;
+  }
+
+  onFinish(callback: () => void) {
+    this.animation.onfinish = callback;
+  }
+
+  onCancel(callback: () => void) {
+    this.animation.oncancel = callback;
+  }
+}
+```
