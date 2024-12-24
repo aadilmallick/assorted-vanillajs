@@ -4,7 +4,6 @@
 interface StartRecording {
   onStop?: () => void;
   onRecordingCanceled?: () => void;
-  onRecordingFailed?: () => void;
 }
 
 class RecordingError extends Error {
@@ -29,8 +28,8 @@ class MicNotEnabledError extends RecordingError {
 
 export class ScreenRecorder {
   stream?: MediaStream;
-  recorder?: MediaRecorder;
-  recorderStream?: MediaStream;
+  private recorder?: MediaRecorder;
+  private recorderStream?: MediaStream;
   micStream?: MediaStream;
 
   static async checkMicPermission() {
@@ -42,7 +41,7 @@ export class ScreenRecorder {
 
   private async getStream({ recordMic }: { recordMic: boolean }) {
     const recorderStream = await navigator.mediaDevices.getDisplayMedia({
-      audio: true,
+      audio: recordMic,
       video: true,
     });
     this.recorderStream = recorderStream;
@@ -53,7 +52,7 @@ export class ScreenRecorder {
     });
 
     // if recording window (no system audio), then just join with mic.
-    if (recorderStream.getAudioTracks().length === 0) {
+    if (recorderStream.getAudioTracks().length === 0 && recordMic) {
       const audioStream = await navigator.mediaDevices.getUserMedia({
         audio: true,
         video: false,
@@ -63,8 +62,7 @@ export class ScreenRecorder {
         ...audioStream.getAudioTracks(),
       ]);
       return combinedStream;
-    }
-    if (recordMic) {
+    } else if (recordMic) {
       const audioStream = await navigator.mediaDevices.getUserMedia({
         audio: true,
         video: false,
@@ -100,7 +98,7 @@ export class ScreenRecorder {
     if (this.recorder) {
       this.recorder.stop();
     }
-    let audioStream: MediaStream | undefined = undefined;
+    let audioStream: MediaStream;
     try {
       audioStream = await navigator.mediaDevices.getUserMedia({
         audio: true,
@@ -110,17 +108,9 @@ export class ScreenRecorder {
       if (e instanceof DOMException) {
         options?.onRecordingCanceled?.();
         return false;
-      } else if (e instanceof RecordingError) {
-        e.log();
-        options?.onRecordingFailed?.();
-        return false;
-      } else {
-        console.error(e);
-        options?.onRecordingFailed?.();
-        return false;
       }
     }
-    this.stream = audioStream!;
+    this.stream = audioStream;
     this.recorder = new MediaRecorder(this.stream);
 
     // Start recording.
@@ -147,6 +137,18 @@ export class ScreenRecorder {
     return true;
   }
 
+  static getScreenRecordingType(stream: MediaStream) {
+    if (!stream || !stream.getVideoTracks().length) {
+      throw new Error(
+        "No video tracks found in stream when getting screen recording type"
+      );
+    }
+    return stream.getVideoTracks()[0].getSettings().displaySurface as
+      | "monitor"
+      | "window"
+      | "browser";
+  }
+
   async startVideoRecording({
     onStop,
     recordMic = false,
@@ -169,15 +171,15 @@ export class ScreenRecorder {
     } catch (e) {
       if (e instanceof DOMException) {
         console.warn("Permission denied: user canceled recording");
-        onRecordingCanceled?.();
+        await onRecordingCanceled?.();
         return false;
       } else if (e instanceof RecordingError) {
         e.log();
-        onRecordingFailed?.();
+        await onRecordingFailed?.();
         return false;
       } else {
         console.error(e);
-        onRecordingFailed?.();
+        await onRecordingFailed?.();
         return false;
       }
     }
@@ -203,7 +205,7 @@ export class ScreenRecorder {
       document.body.removeChild(a);
 
       URL.revokeObjectURL(url);
-      onStop && onStop();
+      onStop && (await onStop());
     });
     return true;
   }
@@ -216,9 +218,8 @@ export class ScreenRecorder {
    * For programmatically stopping the recording.
    */
   async stopRecording() {
-    if (!this.recorder || !this.stream) {
-      return;
-    }
+    console.log("stopping recording");
+    console.log("combined stream tracks", this.stream.getTracks());
     this.stream.getTracks().forEach((track) => track.stop());
     this.recorder.stop();
     this.recorder = undefined;

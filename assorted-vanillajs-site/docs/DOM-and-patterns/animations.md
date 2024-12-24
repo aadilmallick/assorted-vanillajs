@@ -141,3 +141,30 @@ export class AnimationModel {
   }
 }
 ```
+
+## Lerp
+
+```ts
+function lerp(options: {
+  currentPos: { x: number; y: number };
+  targetPos: { x: number; y: number };
+  callback: (currentPos: { x: number; y: number }) => void;
+  lerpFactor?: number;
+}) {
+  const distanceX = options.targetPos.x - options.currentPos.x;
+  const distanceY = options.targetPos.y - options.currentPos.y;
+
+  // we need these checks, otherwise loops infinitely
+  if (Math.abs(distanceX) < 1 || Math.abs(distanceY) < 1) return;
+
+  // the smaller the percentage, the slower the animation
+  // right now we are moving half the distance
+  const lerpFactor = options.lerpFactor || 0.5;
+  options.currentPos.x += distanceX * lerpFactor;
+  options.currentPos.y += distanceY * lerpFactor;
+  // set this -> transform: translate(var(--x), var(--y))
+  options.callback(options.currentPos);
+  // recursive requestAnimationFrame
+  requestAnimationFrame(() => lerp(options));
+}
+```
