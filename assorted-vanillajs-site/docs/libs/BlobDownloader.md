@@ -1,7 +1,7 @@
-# FileManager
+# BlobDownloader
 
 ```ts
-export class FileManager {
+export class BlobDownloader {
   static downloadBlob(blob: Blob, filename: string) {
     let url = URL.createObjectURL(blob);
 

@@ -77,6 +77,14 @@ export class AbortControllerManager {
     return this.controller.signal;
   }
 
+  get isAborted() {
+    return this.controller.signal.aborted;
+  }
+
+  reset() {
+    this.controller = new AbortController();
+  }
+
   abort() {
     this.controller.abort();
   }
