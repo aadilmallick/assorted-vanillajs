@@ -1,31 +1,48 @@
 # BorderGradient
 
 ```ts
+export type GlowLevel = "low" | "medium" | "high" | "none";
+
 export const exampleBorderGradientStyles = {
   rainbow: `
-          background-image: conic-gradient(
-              from var(--angle),
-              #ff4545,
-              #00ff99,
-              #006aff,
-              #ff0095,
-              #ff4545
-          )
-      `,
+            background-image: conic-gradient(
+                from var(--angle),
+                #ff4545,
+                #00ff99,
+                #006aff,
+                #ff0095,
+                #ff4545
+            )
+        `,
   blueTransparent: `
-          background-image: conic-gradient(
-              from var(--angle),
-              transparent 70%,
-              blue
-          )
-      `,
+            background-image: conic-gradient(
+                from var(--angle),
+                transparent 70%,
+                blue
+            )
+        `,
+  blueGradient: `
+            background-image: conic-gradient(
+                from var(--angle),
+                lightblue,
+                blue
+            )
+        `,
 };
 
 class DOMClassManipulator {
-  static addCSS(css: string) {
+  static addCSS(id: string, css: string) {
     const style = document.createElement("style");
+    style.id = id;
     style.innerHTML = css;
     document.head.appendChild(style);
+  }
+
+  static removeStyles(id: string) {
+    const styles = document.getElementById(id);
+    if (styles) {
+      styles.remove();
+    }
   }
 }
 
@@ -33,7 +50,7 @@ export class BorderGradientModel {
   private selector!: string;
   private element: HTMLElement;
 
-  getStaticCSS({
+  private getStaticCSS({
     glowLevel = "low",
     borderRadius,
     conicGradient,
@@ -41,11 +58,17 @@ export class BorderGradientModel {
   }: {
     conicGradient: string;
     borderRadius: string;
-    glowLevel?: "low" | "medium" | "high";
+    glowLevel?: GlowLevel;
     gradientThickness?: "thin" | "medium" | "thick";
   }) {
     const filterBlurLevel =
-      glowLevel === "low" ? "0.2" : glowLevel === "medium" ? "0.5" : "1";
+      glowLevel === "none"
+        ? "0"
+        : glowLevel === "low"
+        ? "0.2"
+        : glowLevel === "medium"
+        ? "0.5"
+        : "1";
     const gradientThicknessValue =
       gradientThickness === "thin"
         ? "2px"
@@ -53,29 +76,29 @@ export class BorderGradientModel {
         ? "4px"
         : "6px";
     const cssContent = `
-              ${this.selector}::after,
-              ${this.selector}::before {
-                      content: "";
-                      position: absolute;
-                      height: 100%;
-                      width: 100%;
-                      ${conicGradient};
-                      top: 50%;
-                      left: 50%;
-                      transform: translate(-50%, -50%);
-                      z-index: -1;
-                      padding: ${gradientThicknessValue};
-                      border-radius: ${borderRadius};
-                  }
-                  ${this.selector}::before {
-                      filter: blur(1.5rem);
-                      opacity: ${filterBlurLevel};
-                  }
-              `;
+                ${this.selector}::after,
+                ${this.selector}::before {
+                        content: "";
+                        position: absolute;
+                        height: 100%;
+                        width: 100%;
+                        ${conicGradient};
+                        top: 50%;
+                        left: 50%;
+                        transform: translate(-50%, -50%);
+                        z-index: -1;
+                        padding: ${gradientThicknessValue};
+                        border-radius: ${borderRadius};
+                    }
+                    ${this.selector}::before {
+                        filter: blur(1.5rem);
+                        opacity: ${filterBlurLevel};
+                    }
+                `;
     return cssContent;
   }
 
-  getCSS({
+  private getCSS({
     glowLevel = "low",
     animationDurationInSeconds = 3,
     borderRadius,
@@ -85,11 +108,17 @@ export class BorderGradientModel {
     conicGradient: string;
     borderRadius: string;
     animationDurationInSeconds?: number;
-    glowLevel?: "low" | "medium" | "high";
+    glowLevel?: GlowLevel;
     gradientThickness?: "thin" | "medium" | "thick";
   }) {
     const filterGlowLevel =
-      glowLevel === "low" ? "0.2" : glowLevel === "medium" ? "0.5" : "1";
+      glowLevel === "none"
+        ? "0"
+        : glowLevel === "low"
+        ? "0.2"
+        : glowLevel === "medium"
+        ? "0.5"
+        : "1";
     const gradientThicknessValue =
       gradientThickness === "thin"
         ? "2px"
@@ -97,40 +126,40 @@ export class BorderGradientModel {
         ? "4px"
         : "6px";
     const cssContent = `
-              @property --angle {
-                  syntax: "<angle>";
-                  initial-value: 0deg;
-                  inherits: false;
-              }
-      
-          ${this.selector}::after,
-          ${this.selector}::before {
-                  content: "";
-                  position: absolute;
-                  height: 100%;
-                  width: 100%;
-                  ${conicGradient};
-                  top: 50%;
-                  left: 50%;
-                  transform: translate(-50%, -50%);
-                  z-index: -1;
-                  padding: ${gradientThicknessValue};
-                  border-radius: ${borderRadius};
-                  animation: ${animationDurationInSeconds}s spin linear infinite;
-              }
-          ${this.selector}::before {
-                  filter: blur(1.5rem);
-                  opacity: ${filterGlowLevel};
-              }
-              @keyframes spin {
-                  from {
-                      --angle: 0deg;
-                  }
-                  to {
-                      --angle: 360deg;
-                  }
-              }
-          `;
+                @property --angle {
+                    syntax: "<angle>";
+                    initial-value: 0deg;
+                    inherits: false;
+                }
+        
+            ${this.selector}::after,
+            ${this.selector}::before {
+                    content: "";
+                    position: absolute;
+                    height: 100%;
+                    width: 100%;
+                    ${conicGradient};
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                    z-index: -1;
+                    padding: ${gradientThicknessValue};
+                    border-radius: ${borderRadius};
+                    animation: ${animationDurationInSeconds}s spin linear infinite;
+                }
+            ${this.selector}::before {
+                    filter: blur(1.5rem);
+                    opacity: ${filterGlowLevel};
+                }
+                @keyframes spin {
+                    from {
+                        --angle: 0deg;
+                    }
+                    to {
+                        --angle: 360deg;
+                    }
+                }
+            `;
     return cssContent;
   }
 
@@ -155,7 +184,7 @@ export class BorderGradientModel {
     gradientMaker: BorderGradientMaker | StaticBorderGradientMaker,
     options?: {
       animationDurationInSeconds?: number;
-      glowLevel?: "low" | "medium" | "high";
+      glowLevel?: GlowLevel;
       gradientThickness?: "thin" | "medium" | "thick";
     }
   ) {
@@ -184,7 +213,7 @@ export class BorderGradientModel {
     gradientMaker: BorderGradientMaker,
     options?: {
       animationDurationInSeconds?: number;
-      glowLevel?: "low" | "medium" | "high";
+      glowLevel?: GlowLevel;
       gradientThicknessValue?: "thin" | "medium" | "thick";
     }
   ) {
@@ -198,13 +227,26 @@ export class BorderGradientModel {
       glowLevel: options?.glowLevel,
       gradientThickness: options?.gradientThicknessValue,
     });
-    DOMClassManipulator.addCSS(css);
+    DOMClassManipulator.addCSS(
+      `border-gradient-styles-${this.element.id}`,
+      css
+    );
+  }
+
+  static removeStyles(elementId: string) {
+    DOMClassManipulator.removeStyles(`border-gradient-styles-${elementId}`);
+  }
+
+  removeStyles() {
+    DOMClassManipulator.removeStyles(
+      `border-gradient-styles-${this.element.id}`
+    );
   }
 
   private createStaticGradient(
     gradientMaker: StaticBorderGradientMaker,
     options?: {
-      glowLevel?: "low" | "medium" | "high";
+      glowLevel?: GlowLevel;
       gradientThicknessValue?: "thin" | "medium" | "thick";
     }
   ) {
@@ -218,7 +260,10 @@ export class BorderGradientModel {
       glowLevel: options?.glowLevel,
     });
 
-    DOMClassManipulator.addCSS(css);
+    DOMClassManipulator.addCSS(
+      `border-gradient-styles-${this.element.id}`,
+      css
+    );
   }
 }
 
@@ -228,7 +273,7 @@ export class BorderGradientFactory {
     colorStops: string[],
     options?: {
       animationDurationInSeconds?: number;
-      blurLevel?: "low" | "medium" | "high";
+      blurLevel?: GlowLevel;
       gradientThicknessValue?: "thin" | "medium" | "thick";
     }
   ) {
@@ -245,7 +290,7 @@ export class BorderGradientFactory {
     sliverPercent = 0.7,
     options?: {
       animationDurationInSeconds?: number;
-      glowLevel?: "low" | "medium" | "high";
+      glowLevel?: GlowLevel;
       gradientThicknessValue?: "thin" | "medium" | "thick";
     }
   ) {
@@ -261,7 +306,7 @@ export class BorderGradientFactory {
     gradientType: keyof typeof exampleBorderGradientStyles,
     options?: {
       animationDurationInSeconds?: number;
-      glowLevel?: "low" | "medium" | "high";
+      glowLevel?: GlowLevel;
       gradientThicknessValue?: "thin" | "medium" | "thick";
     }
   ) {
@@ -276,7 +321,7 @@ export class BorderGradientFactory {
     selector: string | HTMLElement,
     gradientType: keyof typeof exampleBorderGradientStyles,
     options?: {
-      glowLevel?: "low" | "medium" | "high";
+      glowLevel?: GlowLevel;
       gradientThicknessValue?: "thin" | "medium" | "thick";
     }
   ) {
@@ -291,7 +336,7 @@ export class BorderGradientFactory {
     selector: string | HTMLElement,
     gradientType: keyof typeof exampleBorderGradientStyles,
     options?: {
-      glowLevel?: "low" | "medium" | "high";
+      glowLevel?: GlowLevel;
       gradientThicknessValue?: "thin" | "medium" | "thick";
     }
   ) {
@@ -322,12 +367,12 @@ class ClosedCustomGradientMaker implements BorderGradientMaker {
   }
   createConicGradientStyles() {
     const string = `
-              background-image: conic-gradient(
-                  from var(--angle),
-                  ${this.colorStops.join(", ")},
-                  ${this.colorStops[0]}
-              )
-          `;
+                background-image: conic-gradient(
+                    from var(--angle),
+                    ${this.colorStops.join(", ")},
+                    ${this.colorStops[0]}
+                )
+            `;
     return string;
   }
 }
@@ -345,13 +390,13 @@ class OpenCustomGradientMaker implements BorderGradientMaker {
   }
   createConicGradientStyles() {
     const string = `
-                background-image: conic-gradient(
-                    from var(--angle),
-                    transparent ${Math.floor(this.sliverPercent * 100)}%,
-                    ${this.colorStops.join(", ")},
-                    transparent
-                )
-            `;
+                  background-image: conic-gradient(
+                      from var(--angle),
+                      transparent ${Math.floor(this.sliverPercent * 100)}%,
+                      ${this.colorStops.join(", ")},
+                      transparent
+                  )
+              `;
     return string;
   }
 }
@@ -382,4 +427,26 @@ class StaticCustomGradientMaker implements StaticBorderGradientMaker {
     return exampleBorderGradientStyles[this.gradientType];
   }
 }
+```
+
+Here is how to use them:
+
+```ts
+// Create a border gradient with a custom gradient
+BorderGradientFactory.createClosedCustomGradient(
+  ".element",
+  ["#ff4545", "#00ff99", "#006aff", "#ff0095"],
+  {
+    animationDurationInSeconds: 3,
+    blurLevel: "low",
+    gradientThicknessValue: "medium",
+  }
+);
+
+// Create a border gradient with a preset gradient
+BorderGradientFactory.createPresetGradient(".element", "blueTransparent", {
+  animationDurationInSeconds: 3,
+  blurLevel: "low",
+  gradientThicknessValue: "medium",
+});
 ```

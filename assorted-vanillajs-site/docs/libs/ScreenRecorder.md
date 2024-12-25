@@ -30,6 +30,7 @@ export class ScreenRecorder {
   stream?: MediaStream;
   private recorder?: MediaRecorder;
   private recorderStream?: MediaStream;
+  private chunks: Blob[] = [];
   micStream?: MediaStream;
 
   static async checkMicPermission() {
@@ -99,42 +100,54 @@ export class ScreenRecorder {
       this.recorder.stop();
     }
     let audioStream: MediaStream;
-    try {
-      audioStream = await navigator.mediaDevices.getUserMedia({
-        audio: true,
-        video: false,
-      });
-    } catch (e) {
-      if (e instanceof DOMException) {
-        options?.onRecordingCanceled?.();
-        return false;
+    async function shitBitch() {
+      try {
+        audioStream = await navigator.mediaDevices.getUserMedia({
+          audio: true,
+          video: false,
+        });
+        return audioStream;
+      } catch (e) {
+        if (e instanceof DOMException) {
+          options?.onRecordingCanceled?.();
+          return null;
+        }
       }
     }
-    this.stream = audioStream;
-    this.recorder = new MediaRecorder(this.stream);
+    const stream = await shitBitch();
+    if (stream === null) return false;
+    this.stream = stream;
+    this.recorder = new MediaRecorder(this.stream!);
 
     // Start recording.
     this.recorder.start();
     this.recorder.addEventListener("dataavailable", async (event) => {
       let recordedBlob = event.data;
-      let url = URL.createObjectURL(recordedBlob);
-
-      let a = document.createElement("a");
-
-      a.style.display = "none";
-      a.href = url;
-      a.download = "audio-recording.webm";
-
-      document.body.appendChild(a);
-      a.click();
-
-      document.body.removeChild(a);
-
-      URL.revokeObjectURL(url);
-
+      this.chunks.push(recordedBlob);
+    });
+    this.recorder.addEventListener("stop", () => {
+      const giantBlob = new Blob(this.chunks);
+      ScreenRecorder.downloadBlob(giantBlob, "audio-recording.webm");
       options?.onStop?.();
     });
     return true;
+  }
+
+  static downloadBlob(blob: Blob, filename: string) {
+    let url = URL.createObjectURL(blob);
+
+    let a = document.createElement("a");
+
+    a.style.display = "none";
+    a.href = url;
+    a.download = filename;
+
+    document.body.appendChild(a);
+    a.click();
+
+    document.body.removeChild(a);
+
+    URL.revokeObjectURL(url);
   }
 
   static getScreenRecordingType(stream: MediaStream) {
@@ -167,7 +180,6 @@ export class ScreenRecorder {
       this.stream = await this.getStream({
         recordMic,
       });
-      console.log("stream", this.stream);
     } catch (e) {
       if (e instanceof DOMException) {
         console.warn("Permission denied: user canceled recording");
@@ -189,23 +201,14 @@ export class ScreenRecorder {
 
     // Start recording.
     this.recorder.start();
-    this.recorder.addEventListener("dataavailable", async (event) => {
+    this.recorder.addEventListener("dataavailable", (event) => {
       let recordedBlob = event.data;
-      let url = URL.createObjectURL(recordedBlob);
-
-      let a = document.createElement("a");
-
-      a.style.display = "none";
-      a.href = url;
-      a.download = "screen-recording.webm";
-
-      document.body.appendChild(a);
-      a.click();
-
-      document.body.removeChild(a);
-
-      URL.revokeObjectURL(url);
-      onStop && (await onStop());
+      this.chunks.push(recordedBlob);
+    });
+    this.recorder.addEventListener("stop", () => {
+      const giantBlob = new Blob(this.chunks);
+      ScreenRecorder.downloadBlob(giantBlob, "screen-recording.webm");
+      onStop?.();
     });
     return true;
   }
@@ -218,11 +221,13 @@ export class ScreenRecorder {
    * For programmatically stopping the recording.
    */
   async stopRecording() {
+    if (!this.recorder || !this.stream) return;
     console.log("stopping recording");
     console.log("combined stream tracks", this.stream.getTracks());
     this.stream.getTracks().forEach((track) => track.stop());
     this.recorder.stop();
     this.recorder = undefined;
+    this.chunks = [];
   }
 }
 ```

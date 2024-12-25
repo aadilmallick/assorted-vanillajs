@@ -2,7 +2,7 @@
 
 All web components should inherit from this class.
 
-```ts
+````ts
 type Selector = {
   <K extends keyof HTMLElementTagNameMap>(selectors: K):
     | HTMLElementTagNameMap[K]
@@ -19,6 +19,10 @@ type Selector = {
   <E extends Element = Element>(selectors: string): E | null;
 };
 
+type SafeSelector = <K extends keyof HTMLElementTagNameMap>(
+  selectors: K
+) => HTMLElementTagNameMap[K];
+
 function querySelectorWithThrow(containerElement: HTMLElement | ShadowRoot) {
   const select = containerElement.querySelector.bind(
     containerElement
@@ -27,7 +31,7 @@ function querySelectorWithThrow(containerElement: HTMLElement | ShadowRoot) {
     const query = select(_class);
     if (!query) throw new Error(`Element with selector ${_class} not found`);
     return query;
-  }) as Selector;
+  }) as SafeSelector;
 }
 
 /**
@@ -44,8 +48,14 @@ export default abstract class WebComponent<
   protected styles: HTMLStyleElement;
   protected template: HTMLTemplateElement;
   public $: Selector;
-  public $throw: Selector;
+  public $throw: SafeSelector;
 
+  /**
+   * A singleton way to register a custom element.
+   * You must call this method in order to render the custom element.
+   * @param name the name of the custom element
+   * @param _class  the class of the custom element
+   */
   static register(name: string, _class: CustomElementConstructor): void {
     if (!customElements.get(name)) {
       customElements.define(name, _class);
@@ -53,7 +63,16 @@ export default abstract class WebComponent<
   }
 
   /**
-   * Might be blocked depending on CSP
+   * Might be blocked depending on CSP. Basically swaps out values
+   * for ${} placeholders in a string.
+   *
+   * example:
+   *
+   * ```ts
+   * WebComponent.interpolate("Hello ${name}", {name: "world"}) // returns "Hello world"
+   * ```
+   *
+   *
    * @param str the string to interpolate
    * @param params  the object with the values to interpolate
    * @returns
@@ -72,21 +91,30 @@ export default abstract class WebComponent<
   }
 
   async loadExternalCSS(filepath: string) {
-    const request = await fetch(filepath);
-    const css = await request.text();
-    this.styles.textContent = css;
+    try {
+      const request = await fetch(filepath);
+      if (!request.ok) {
+        throw new Error(
+          `Failed to load CSS from ${filepath}: ${request.status}`
+        );
+      }
+      const css = await request.text();
+      this.styles.textContent = css;
+    } catch (error) {
+      console.error(`Error loading external CSS: ${error.message}`);
+    }
   }
 
   private templateId: string;
   constructor(options: {
-    templateId: string; // template id
+    templateId?: string; // template id
     HTMLContent?: string; // html content of template
     cssFileName?: string; // filename of css to apply on template, if provided
     cssContent?: string; // css content to apply on template, if provided
   }) {
     // 1. always call super()
     super();
-    this.templateId = options.templateId;
+    this.templateId = options.templateId || "default-template";
     // 2. create shadow DOM and create template
     this.shadow = this.attachShadow({ mode: "open" });
     this.$ = this.shadow.querySelector.bind(this.shadow);
@@ -94,7 +122,7 @@ export default abstract class WebComponent<
 
     this.styles = document.createElement("style");
     this.template = WebComponent.createTemplate(
-      options.templateId,
+      this.templateId,
       options.HTMLContent ??
         (this.constructor as typeof WebComponent).HTMLContent
     );
@@ -117,25 +145,26 @@ export default abstract class WebComponent<
   }
 
   // called when element is inserted to the DOM
-  connectedCallback() {
+  protected connectedCallback() {
     this.createComponent();
     console.log(`${this.templateId}: connectedCallback finished executing`);
   }
 
   private createComponent() {
+    if (!this.shadow.contains(this.styles)) {
+      this.shadow.appendChild(this.styles);
+    }
     const content = this.template.content.cloneNode(true);
-    this.shadow.appendChild(this.styles);
     this.shadow.appendChild(content);
-    // create utility selector
   }
 
   // triggered when element is removed from document
-  disconnectedCallback() {
+  protected disconnectedCallback() {
     console.log("disconnected");
   }
 
   // triggered when element is moved to new document (only with iframes)
-  adoptedCallback() {
+  protected adoptedCallback() {
     console.log("adopted");
   }
 
@@ -171,7 +200,7 @@ export default abstract class WebComponent<
     console.log("attributeChangedCallback run", attrName, oldVal, newVal);
   }
 }
-```
+````
 
 This is an example of how you can inherit from this class:
 
