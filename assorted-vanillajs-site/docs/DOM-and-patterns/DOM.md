@@ -6,6 +6,7 @@ A class for creating DOM elements from HTML strings, selecting elements, and add
 
 ```ts
 export class DOM {
+  type Selector = typeof HTMLElement.prototype.querySelector;
   /**
    * Adding elements
    * */
