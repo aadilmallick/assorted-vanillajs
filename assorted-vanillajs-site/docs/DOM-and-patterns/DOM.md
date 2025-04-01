@@ -89,6 +89,14 @@ export class AbortControllerManager {
   abort() {
     this.controller.abort();
   }
+
+  onAbort(callback: () => void) {
+    this.controller.signal.addEventListener("abort", callback);
+  }
+
+  static createTimeoutSignal(timeoutMillis: number) {
+    return AbortSignal.timeout(timeoutMillis);
+  }
 }
 ```
 

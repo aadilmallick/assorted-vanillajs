@@ -44,3 +44,30 @@ export default function Home(): JSX.Element {
     </Layout>
   );
 }
+export class AbortControllerManager {
+  private controller = new AbortController();
+
+  get signal() {
+    return this.controller.signal;
+  }
+
+  get isAborted() {
+    return this.controller.signal.aborted;
+  }
+
+  reset() {
+    this.controller = new AbortController();
+  }
+
+  abort() {
+    this.controller.abort();
+  }
+
+  onAbort(callback: () => void) {
+    this.controller.signal.addEventListener("abort", callback);
+  }
+
+  static createTimeoutSignal(timeoutMillis: number) {
+    return AbortSignal.timeout(timeoutMillis);
+  }
+}
