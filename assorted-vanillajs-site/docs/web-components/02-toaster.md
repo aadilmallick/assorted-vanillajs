@@ -1,8 +1,8 @@
 # Toaster Web Component
 
 ```ts
+import { css, html } from "../utils";
 import WebComponent from "./WebComponent";
-import { html, css } from "../Dom";
 
 const observedAttributes = ["data-position", "data-timeout"] as const;
 
@@ -18,7 +18,7 @@ interface Props {
 
 class Toast {
   public element: HTMLElement;
-  private timeoutId: NodeJS.Timeout | null = null;
+  private timeoutId: number | null = null;
   private duration: number;
   constructor({
     message,
@@ -84,7 +84,7 @@ class Toast {
 
 export default class Toaster extends WebComponent<typeof observedAttributes> {
   private position: ToastManagerOptions["position"];
-  private timeout: number;
+  private timeout?: number;
   constructor() {
     super({
       templateId: "toaster-element",
@@ -111,7 +111,7 @@ export default class Toaster extends WebComponent<typeof observedAttributes> {
       "bottom-right") as ToastManagerOptions["position"];
     this.timeout = (this.dataset.timeout || 3000) as number;
     console.log(this.position, this.timeout);
-    this.$(".toast-container")?.classList.add(this.position);
+    this.$(".toast-container")?.classList.add(this.position!);
   }
 
   static get observedAttributes() {
@@ -247,7 +247,7 @@ export default class Toaster extends WebComponent<typeof observedAttributes> {
       type,
       duration: this.timeout,
     });
-    this.$(".toast-container").appendChild(toast.element);
+    this.$(".toast-container")!.appendChild(toast.element);
     toast.show();
   }
 
@@ -266,17 +266,21 @@ export default class Toaster extends WebComponent<typeof observedAttributes> {
   warning(message: string) {
     this.toast(message, "warning");
   }
-}
 
-declare global {
-  namespace JSX {
-    interface IntrinsicElements {
-      "toaster-element": React.DetailedHTMLProps<
-        React.HTMLAttributes<HTMLElement>,
-        HTMLElement
-      > &
-        Props;
-    }
+  static success(message: string) {
+    Toaster.toast(message, "success");
+  }
+
+  static info(message: string) {
+    Toaster.toast(message, "info");
+  }
+
+  static danger(message: string) {
+    Toaster.toast(message, "danger");
+  }
+
+  static warning(message: string) {
+    Toaster.toast(message, "warning");
   }
 }
 ```
