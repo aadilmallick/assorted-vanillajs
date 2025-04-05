@@ -4,7 +4,7 @@ A utility class for interacting with the system clipboard, providing methods to 
 
 ## Class Methods
 
-### `readText(): Promise<string | null>`
+### `readText()`
 
 Reads plain text from the system clipboard.
 
@@ -19,7 +19,7 @@ if (text) {
 }
 ```
 
-### `readClipboardDataAsText(): Promise<string | null>`
+### `readClipboardDataAsText()`
 
 Reads text data from the clipboard using the Clipboard API.
 
@@ -34,7 +34,7 @@ if (text) {
 }
 ```
 
-### `readClipboardDataAsHTML(): Promise<string | null>`
+### `readClipboardDataAsHTML()`
 
 Reads HTML content from the clipboard using the Clipboard API.
 
@@ -49,7 +49,7 @@ if (html) {
 }
 ```
 
-### `readClipboardDataAsImage(options?: { asBlob?: boolean }): Promise<Blob | string | null>`
+### `readClipboardDataAsImage()`
 
 Reads image data from the clipboard using the Clipboard API.
 
@@ -79,7 +79,7 @@ if (imageBlob) {
 }
 ```
 
-### `copyText(text: string): Promise<void>`
+### `copyText()`
 
 Copies text to the system clipboard.
 
@@ -93,7 +93,7 @@ Copies text to the system clipboard.
 await ClipboardModel.copyText("Hello, World!");
 ```
 
-### `hasTextCopied(): Promise<boolean>`
+### `hasTextCopied()`
 
 Checks if the clipboard contains text data.
 
@@ -108,7 +108,7 @@ if (hasText) {
 }
 ```
 
-### `hasImageCopied(): Promise<boolean>`
+### `hasImageCopied()`
 
 Checks if the clipboard contains image data.
 
@@ -123,7 +123,7 @@ if (hasImage) {
 }
 ```
 
-### `copyImage(path: string, mimeType: `image/${string}`): Promise<void>`
+### `copyImage()`
 
 Copies an image to the clipboard from a given path.
 
@@ -137,22 +137,6 @@ Copies an image to the clipboard from a given path.
 ```typescript
 await ClipboardModel.copyImage("path/to/image.png", "image/png");
 ```
-
-## Browser Support
-
-This class uses the modern Clipboard API which is supported in most modern browsers. However, some features may require:
-
-- HTTPS context
-- User permission
-- Browser support for specific MIME types
-
-## Error Handling
-
-The class includes basic error handling:
-
-- Returns null for failed read operations
-- Handles cases where clipboard data is not available
-- Manages different image formats and conversions
 
 ## Private Methods
 

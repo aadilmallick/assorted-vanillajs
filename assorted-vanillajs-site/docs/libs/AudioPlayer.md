@@ -1,108 +1,29 @@
 # AudioPlayer
 
 ```ts
-export class AudioPlayer {
-  private audio!: HTMLAudioElement;
-  private isPlaying!: boolean;
-  constructor(audioBlobUrl: string) {
-    this.audio = new Audio(audioBlobUrl);
-    this.isPlaying = !this.audio.paused;
+export class AudioFilePlayer {
+  private audio: HTMLAudioElement;
 
-    this.audio.addEventListener("ended", () => {
-      this.isPlaying = false;
-    });
+  constructor(url: string) {
+    this.audio = new Audio(url);
+    this.audio.crossOrigin = "anonymous";
   }
 
-  public get audioLoaded(): boolean {
-    return this.audio.readyState >= 2; // HAVE_ENOUGH_DATA
+  public get isPlaying(): boolean {
+    return this.audio.paused === false && !this.audio.ended;
   }
 
-  public get on(): boolean {
-    return this.isPlaying;
+  async play() {
+    if (this.isPlaying) return;
+    await this.audio.play();
+    // wire the source to the 'speaker'
   }
 
-  onProgress(cb: (progress: number) => void): void {
-    this.audio.addEventListener("timeupdate", () => {
-      const progress = this.audio.currentTime / this.audio.duration;
-      cb(progress);
-    });
+  async pause() {
+    if (!this.isPlaying) return;
   }
 
-  toggle(): void {
-    if (this.isPlaying) {
-      this.pause();
-    } else {
-      this.play();
-    }
-  }
-
-  // Play the audio
-  play(): void {
-    this.audio.play();
-    this.isPlaying = true;
-  }
-
-  // Pause the audio
-  pause(): void {
-    this.audio.pause();
-    this.isPlaying = false;
-  }
-
-  // Change the playback speed (e.g., 1.0 is normal speed, 2.0 is double speed)
-  setSpeed(speed: number): void {
-    if (speed > 0) {
-      this.audio.playbackRate = speed;
-    } else {
-      console.error("Speed must be greater than 0.");
-    }
-  }
-
-  // Skip forward or backward by a specified number of seconds
-  skip(seconds: number): void {
-    this.audio.currentTime += seconds;
-  }
-
-  seekTo(progress: number): void {
-    if (progress >= 0 && progress <= 1) {
-      this.audio.currentTime = progress * this.audio.duration;
-    } else {
-      console.error("Progress must be between 0 and 1.");
-    }
-  }
-
-  // Get the current playback speed
-  getSpeed(): number {
-    return this.audio.playbackRate;
-  }
-
-  // Get the current time of the audio in seconds
-  getCurrentTime(): number {
-    return this.audio.currentTime;
-  }
-
-  getCurrentTimeInPercentage(): number {
-    if (!this.audio.duration) {
-      return 0;
-    }
-    return this.audio.currentTime / this.audio.duration;
-  }
-
-  // Get the total duration of the audio in seconds
-  public get duration(): number {
-    return this.audio.duration;
-  }
-
-  // Check if the audio is currently playing
-  isAudioPlaying(): boolean {
-    return this.isPlaying;
-  }
-
-  // Clean up the object URL when done
-  destroy(): void {
-    URL.revokeObjectURL(this.audio.src);
-  }
-
-  setVolume(volume: number): void {
+  public set volume(volume: number) {
     if (volume >= 0 && volume <= 1) {
       this.audio.volume = volume;
     } else {
@@ -110,17 +31,60 @@ export class AudioPlayer {
     }
   }
 
-  getVolume(): number {
+  public get volume(): number {
     return this.audio.volume;
   }
-}
 
-// Example usage:
-// const audioBlob = ...; // Your audio blob
-// const player = new AudioPlayer(audioBlob);
-// player.play();
-// player.setSpeed(1.5);
-// player.skip(10); // Skip forward 10 seconds
-// player.pause();
-// player.destroy();
+  // Get the total duration of the audio in seconds
+  public get duration(): number {
+    return this.audio.duration;
+  }
+
+  public set speed(speed: number) {
+    if (speed > 0) {
+      this.audio.playbackRate = speed;
+    } else {
+      console.error("Speed must be greater than 0.");
+    }
+  }
+
+  public get speed(): number {
+    return this.audio.playbackRate;
+  }
+
+  public get progress(): number {
+    if (!this.audio.duration || this.audio.duration === 0) {
+      // If the duration is 0, we can't calculate progress
+      return 0;
+    }
+    return this.audio.currentTime / this.audio.duration;
+  }
+
+  // Skip forward or backward by a specified number of seconds
+  skip(seconds: number): void {
+    this.audio.currentTime += seconds;
+  }
+
+  seekToProgress(progress: number): void {
+    if (progress >= 0 && progress <= 1) {
+      this.audio.currentTime = progress * this.audio.duration;
+    } else {
+      console.error("Progress must be between 0 and 1.");
+    }
+  }
+
+  seekToTime(seconds: number): void {
+    if (seconds >= 0 && seconds <= this.duration) {
+      this.audio.currentTime = seconds;
+    } else {
+      console.error(
+        `Seconds must be between 0 and audio duration (${seconds}).`
+      );
+    }
+  }
+
+  public get currentTime(): number {
+    return this.audio.currentTime;
+  }
+}
 ```
