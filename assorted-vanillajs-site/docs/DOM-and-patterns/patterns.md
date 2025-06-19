@@ -185,3 +185,31 @@ Here is when to use debounce vs throttle:
 
 - Use debounce when you want to wait for a pause in the input before calling the function.
 - Use throttle when you want to limit the number of times a function is called in a given time period.
+
+## Messaging pattern
+
+Use this pattern to create basic messaging pattern that is compatible with workers, service workers, and is based on the reducer pattern:
+
+```ts
+export class MessageSystem<T extends Record<string, any>> {
+  getDispatchMessage<K extends keyof T>(key: K, payload: T[K]) {
+    return {
+      type: key,
+      payload,
+    };
+  }
+
+  messageIsOfType<K extends keyof T>(key: K, message: any): message is T[K] {
+    if (!message || !message.type) {
+      return false;
+    }
+    return message.type === key;
+  }
+}
+
+const appMessageSystem = new MessageSystem<{
+  ping: {
+    ping: string;
+  };
+}>();
+```

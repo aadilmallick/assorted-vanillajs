@@ -285,6 +285,7 @@ export default class Toaster extends WebComponent<typeof observedAttributes> {
 }
 ```
 
+
 Here is how you would use it:
 
 1. Register the element

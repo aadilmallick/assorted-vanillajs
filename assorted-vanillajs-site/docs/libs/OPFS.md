@@ -1,79 +1,144 @@
 # OPFS
 
-## Origin private file system class
+## Types
 
 ```ts
-class OPFS {
-  private root!: FileSystemDirectoryHandle;
-  async openDirectory() {
-    this.root = await navigator.storage.getDirectory();
-  }
+/// <reference types="vite/client" />
 
-  public get directory() {
-    return this.root;
-  }
+// Basic types
+type FileSystemPermissionMode = "read" | "readwrite";
+type FileSystemHandleKind = "file" | "directory";
 
-  async getDirectoryContents() {
-    this.validate();
-    const data = [] as { name: string; fileHandle: FileSystemHandle }[];
-    for await (let [name, handle] of this.root) {
-      data.push({ name, fileHandle: handle });
-    }
-    return data;
-  }
-
-  private validate(): this is { root: FileSystemDirectoryHandle } {
-    if (!this.root) {
-      throw new Error("Root directory not set");
-    }
-    return true;
-  }
-  async createFile(filename: string) {
-    this.validate();
-    const file = await this.root.getFileHandle(filename, { create: true });
-    return file;
-  }
-
-  async getFileHandle(filename: string) {
-    this.validate();
-    const file = await this.root.getFileHandle(filename);
-    return file;
-  }
-
-  async deleteFile(filename: string) {
-    this.validate();
-    await this.root.removeEntry(filename);
-  }
-
-  async getFile(filename: string) {
-    const fileHandle = await this.getFileHandle(filename);
-    return await fileHandle.getFile();
-  }
-
-  async getFileAsURL(filename: string) {
-    return URL.createObjectURL(await this.getFile(filename));
-  }
-
-  static async writeToFileHandle(
-    file: FileSystemFileHandle,
-    data: string | Blob | ArrayBuffer
-  ) {
-    const writable = await file.createWritable();
-    await writable.write(data);
-    await writable.close();
-  }
+interface FileSystemHandlePermissionDescriptor {
+  mode?: FileSystemPermissionMode;
 }
 
-const openDirectoryButton = document.getElementById("open-directory-button");
-const opfs = new OPFS();
-openDirectoryButton?.addEventListener("click", async () => {
-  await opfs.openDirectory();
-  console.log("Directory opened");
-  console.log(opfs.directory);
-});
+// FileSystemHandle (shared between file and directory)
+interface FileSystemHandle {
+  readonly kind: FileSystemHandleKind;
+  readonly name: string;
+
+  isSameEntry(other: FileSystemHandle): Promise<boolean>;
+  queryPermission(
+    descriptor?: FileSystemPermissionDescriptor
+  ): Promise<PermissionState>;
+  requestPermission(
+    descriptor?: FileSystemPermissionDescriptor
+  ): Promise<PermissionState>;
+}
+
+interface FileSystemPermissionDescriptor {
+  mode?: "read" | "readwrite";
+}
+
+// FileSystemFileHandle
+interface FileSystemFileHandle extends FileSystemHandle {
+  readonly kind: "file";
+
+  getFile(): Promise<File>;
+  createWritable(
+    options?: FileSystemCreateWritableOptions
+  ): Promise<FileSystemWritableFileStream>;
+}
+
+// FileSystemDirectoryHandle
+interface FileSystemDirectoryHandle extends FileSystemHandle {
+  readonly kind: "directory";
+
+  getFileHandle(
+    name: string,
+    options?: GetFileHandleOptions
+  ): Promise<FileSystemFileHandle>;
+  getDirectoryHandle(
+    name: string,
+    options?: GetDirectoryHandleOptions
+  ): Promise<FileSystemDirectoryHandle>;
+  removeEntry(name: string, options?: RemoveEntryOptions): Promise<void>;
+  resolve(possibleDescendant: FileSystemHandle): Promise<string[] | null>;
+  entries(): AsyncIterableIterator<[string, FileSystemHandle]>;
+  keys(): AsyncIterableIterator<string>;
+  values(): AsyncIterableIterator<FileSystemHandle>;
+  [Symbol.asyncIterator](): AsyncIterableIterator<[string, FileSystemHandle]>;
+}
+
+// Writable stream for saving files
+interface FileSystemWritableFileStream extends WritableStream {
+  write(data: BufferSource | Blob | string | WriteParams): Promise<void>;
+  seek(position: number): Promise<void>;
+  truncate(size: number): Promise<void>;
+  close(): Promise<void>;
+}
+
+interface WriteParams {
+  type: "write";
+  position?: number;
+  data: BufferSource | Blob | string;
+}
+
+// Options
+interface FileSystemCreateWritableOptions {
+  keepExistingData?: boolean;
+}
+
+interface GetFileHandleOptions {
+  create?: boolean;
+}
+
+interface GetDirectoryHandleOptions {
+  create?: boolean;
+}
+
+interface RemoveEntryOptions {
+  recursive?: boolean;
+}
+
+// File picker options
+interface FilePickerAcceptType {
+  description?: string;
+  accept: Record<string, string[]>;
+}
+
+interface OpenFilePickerOptions {
+  multiple?: boolean;
+  excludeAcceptAllOption?: boolean;
+  types?: FilePickerAcceptType[];
+}
+
+type StartInType =
+  | "desktop"
+  | "documents"
+  | "downloads"
+  | "pictures"
+  | "videos"
+  | "music"
+  | FileSystemHandle;
+
+interface SaveFilePickerOptions {
+  suggestedName?: string;
+  types?: FilePickerAcceptType[];
+  excludeAcceptAllOption?: boolean;
+  startIn?: FileSystemHandle | string;
+}
+
+interface DirectoryPickerOptions {
+  id?: string;
+  mode?: FileSystemPermissionMode;
+  startIn?: FileSystemHandle | string;
+}
+
+// Global functions
+declare function showOpenFilePicker(
+  options?: OpenFilePickerOptions
+): Promise<FileSystemFileHandle[]>;
+declare function showSaveFilePicker(
+  options?: SaveFilePickerOptions
+): Promise<FileSystemFileHandle>;
+declare function showDirectoryPicker(
+  options?: DirectoryPickerOptions
+): Promise<FileSystemDirectoryHandle>;
 ```
 
-## File handle
+## Class
 
 ```ts
 type FileAcceptType = {
@@ -82,6 +147,11 @@ type FileAcceptType = {
 };
 
 export class FileSystemManager {
+  static async getFileSize(handle: FileSystemFileHandle) {
+    const file = await handle.getFile();
+    return file.size;
+  }
+  // region READ
   static async openSingleFile(types: FileAcceptType[]) {
     const [fileHandle] = await window.showOpenFilePicker({
       types,
@@ -100,10 +170,127 @@ export class FileSystemManager {
     return fileHandles;
   }
 
-  static async openDirectory() {
-    const dirHandle = await window.showDirectoryPicker();
-    return await dirHandle.values();
+  static async openDirectory({
+    mode = "read",
+    startIn,
+  }: {
+    mode?: "read" | "readwrite";
+    startIn?: StartInType;
+  }) {
+    const dirHandle = await window.showDirectoryPicker({
+      mode: mode,
+      startIn: startIn,
+    });
+    return dirHandle;
   }
+
+  static async readDirectoryHandle(dirHandle: FileSystemDirectoryHandle) {
+    const values = await Array.fromAsync(dirHandle.values());
+    return values;
+  }
+
+  static async getDirectoryContentNames(dirHandle: FileSystemDirectoryHandle) {
+    const keys = await Array.fromAsync(dirHandle.keys());
+    return keys;
+  }
+
+  static async getStorageInfo() {
+    const estimate = await navigator.storage.estimate();
+    if (!estimate.quota || !estimate.usage) {
+      throw new Error("Storage estimate not available");
+    }
+    return {
+      storagePercentageUsed: (estimate.usage / estimate.quota) * 100,
+      bytesUsed: estimate.usage,
+      bytesAvailable: estimate.quota,
+    };
+  }
+
+  /**
+   * Recursively walks through a directory handle and returns all files
+   * @param dirHandle The directory handle to walk through
+   * @param path The current path (used for recursion)
+   * @returns An array of objects containing file handles and their paths
+   */
+  static async walk(
+    dirHandle: FileSystemDirectoryHandle,
+    path: string = ""
+  ): Promise<Array<{ handle: FileSystemFileHandle; path: string }>> {
+    const results: Array<{ handle: FileSystemFileHandle; path: string }> = [];
+    const entries = await this.readDirectoryHandle(dirHandle);
+
+    for (const entry of entries) {
+      const entryPath = path ? `${path}/${entry.name}` : entry.name;
+
+      if (entry.kind === "file") {
+        results.push({
+          handle: entry as FileSystemFileHandle,
+          path: entryPath,
+        });
+      } else if (entry.kind === "directory") {
+        // Recursively walk through subdirectories
+        const subDirHandle = entry as FileSystemDirectoryHandle;
+        const subResults = await this.walk(subDirHandle, entryPath);
+        results.push(...subResults);
+      }
+    }
+
+    return results;
+  }
+
+  static getFileFromDirectory(
+    dirHandle: FileSystemDirectoryHandle,
+    filename: string
+  ) {
+    return dirHandle.getFileHandle(filename, { create: false });
+  }
+
+  static async getFileDataFromHandle(
+    handle: FileSystemFileHandle,
+    options?: {
+      type?: "blobUrl" | "file" | "arrayBuffer";
+    }
+  ): Promise<File | string | ArrayBuffer> {
+    const file = await handle.getFile();
+
+    if (options?.type === "blobUrl") {
+      return URL.createObjectURL(file);
+    }
+
+    if (options?.type === "arrayBuffer") {
+      return file.arrayBuffer();
+    }
+
+    // Default return type is File
+    return file;
+  }
+
+  // region CREATE
+  static createFileFromDirectory(
+    dirHandle: FileSystemDirectoryHandle,
+    filename: string
+  ) {
+    return dirHandle.getFileHandle(filename, { create: true });
+  }
+
+  // region DELETE
+  static deleteFileFromDirectory(
+    dirHandle: FileSystemDirectoryHandle,
+    filename: string
+  ) {
+    return dirHandle.removeEntry(filename);
+  }
+
+  static deleteFolderFromDirectory(
+    dirHandle: FileSystemDirectoryHandle,
+    folderName: string
+  ) {
+    return dirHandle.removeEntry(folderName, {
+      recursive: true,
+    });
+  }
+
+  // region WRITE
 
   static async saveTextFile(text: string) {
     const fileHandle = await window.showSaveFilePicker({
@@ -119,30 +306,248 @@ export class FileSystemManager {
     await this.writeData(fileHandle, text);
   }
 
+  static FileTypes = {
+    getTextFileTypes: () => {
+      return {
+        description: "Text files",
+        accept: {
+          "text/*": [".txt", ".md", ".html", ".css", ".js", ".json"],
+        },
+      };
+    },
+    getVideoFileTypes: () => {
+      return {
+        description: "Video files",
+        accept: {
+          "video/*": [".mp4", ".avi", ".mkv", ".mov", ".webm"],
+        },
+      };
+    },
+    getImageFileTypes: () => {
+      return {
+        description: "Image files",
+        accept: {
+          "image/*": [".jpg", ".jpeg", ".png", ".gif", ".bmp", ".svg", ".webp"],
+        },
+      };
+    },
+  };
+
   static async saveFile(options: {
-    data: any;
+    data: Blob | string;
     types?: FileAcceptType[];
     name?: string;
-    startIn?:
-      | "desktop"
-      | "documents"
-      | "downloads"
-      | "pictures"
-      | "videos"
-      | "music";
+    startIn?: StartInType;
   }) {
     const fileHandle = await window.showSaveFilePicker({
       types: options.types,
       suggestedName: options.name,
       startIn: options.startIn,
     });
-    await this.writeData(fileHandle, data);
+    await this.writeData(fileHandle, options.data);
   }
 
-  private static async writeData(fileHandle: any, data: any) {
+  private static async writeData(
+    fileHandle: FileSystemFileHandle,
+    data: Blob | string
+  ) {
     const writable = await fileHandle.createWritable();
     await writable.write(data);
     await writable.close();
   }
+}
+
+export class OPFS {
+  private root!: FileSystemDirectoryHandle;
+
+  constructor(root?: FileSystemDirectoryHandle) {
+    if (root) {
+      this.root = root;
+    }
+  }
+
+  async initOPFS() {
+    try {
+      this.root = await navigator.storage.getDirectory();
+      return true;
+    } catch (e) {
+      console.error("Error opening directory:", e);
+      return false;
+    }
+  }
+
+  public get directoryHandle() {
+    return this.root;
+  }
+
+  public get initialized() {
+    return !!this.root;
+  }
+
+  private validate(): this is { root: FileSystemDirectoryHandle } {
+    if (!this.root) {
+      throw new Error("Root directory not set");
+    }
+    return true;
+  }
+
+  async getDirectoryContents() {
+    this.validate();
+    return await FileSystemManager.readDirectoryHandle(this.root);
+  }
+
+  async getFilesAndFolders() {
+    this.validate();
+    const entries = await FileSystemManager.readDirectoryHandle(this.root);
+    const files = entries.filter(
+      (entry) => entry.kind === "file"
+    ) as FileSystemFileHandle[];
+    const folders = entries.filter(
+      (entry) => entry.kind === "directory"
+    ) as FileSystemDirectoryHandle[];
+    return {
+      files,
+      folders,
+    };
+  }
+
+  async createFileHandle(filename: string) {
+    this.validate();
+    return await FileSystemManager.createFileFromDirectory(this.root, filename);
+  }
+
+  async createDirectory(folderName: string) {
+    this.validate();
+    const dirHandle = await this.root.getDirectoryHandle(folderName, {
+      create: true,
+    });
+    return new OPFS(dirHandle);
+  }
+
+  async getDirectoryContentNames() {
+    this.validate();
+    return await FileSystemManager.getDirectoryContentNames(this.root);
+  }
+
+  async getFileHandle(filename: string) {
+    this.validate();
+    return await FileSystemManager.getFileFromDirectory(this.root, filename);
+  }
+
+  async deleteFile(filename: string) {
+    this.validate();
+    await FileSystemManager.deleteFileFromDirectory(this.root, filename);
+  }
+
+  async deleteFolder(folderName: string) {
+    this.validate();
+    await FileSystemManager.deleteFolderFromDirectory(this.root, folderName);
+  }
+
+  static async writeDataToFileHandle(
+    file: FileSystemFileHandle,
+    data: string | Blob | ArrayBuffer
+  ) {
+    const writable = await file.createWritable();
+    await writable.write(data);
+    await writable.close();
+  }
+}
+
+export class DirectoryNavigationStack {
+  constructor(
+    private root: FileSystemDirectoryHandle,
+    private stack: FileSystemDirectoryHandle[] = []
+  ) {}
+
+  public get isRoot() {
+    return this.stack.length === 0;
+  }
+
+  public get fsRoot() {
+    return this.root;
+  }
+
+  public get size() {
+    return this.stack.length;
+  }
+
+  public push(dirHandle: FileSystemDirectoryHandle) {
+    this.stack.push(dirHandle);
+  }
+
+  public pop() {
+    return this.stack.pop();
+  }
+
+  public get currentDirectory() {
+    return this.stack.at(-1) || this.root;
+  }
+
+  public get currentFolderPath() {
+    if (this.isRoot) {
+      return "/" + this.root.name;
+    }
+    return "/" + [this.root.name, ...this.stack.map((d) => d.name)].join("/");
+  }
+
+  public get parentFolderPath() {
+    if (this.isRoot) {
+      return "/" + this.root.name;
+    }
+    return (
+      "/" +
+      [this.root.name, ...this.stack.slice(0, -1).map((d) => d.name)].join("/")
+    );
+  }
+}
+
+export class FileHandleModel {
+  constructor(public handle: FileSystemFileHandle) {}
+
+  getFileData() {
+    return this.handle.getFile();
+  }
+
+  async getFileSize() {
+    const file = await this.getFileData();
+    return file.size;
+  }
+
+  async getFileAsBlobUrl() {
+    const file = await this.getFileData();
+    return URL.createObjectURL(file);
+  }
+}
+
+export function humanFileSize(bytes: number, dp = 1) {
+  const thresh = 1000;
+
+  if (Math.abs(bytes) < thresh) {
+    return bytes + " B";
+  }
+
+  const units = ["kB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"];
+  let u = -1;
+  const r = 10 ** dp;
+
+  do {
+    bytes /= thresh;
+    ++u;
+  } while (
+    Math.round(Math.abs(bytes) * r) / r >= thresh &&
+    u < units.length - 1
+  );
+
+  return bytes.toFixed(dp) + " " + units[u];
+}
+
+export async function getStorageInfo() {
+  const info = await FileSystemManager.getStorageInfo();
+  return {
+    percentUsed: info.storagePercentageUsed,
+    bytesUsed: humanFileSize(info.bytesUsed),
+    bytesAvailable: humanFileSize(info.bytesAvailable),
+  };
 }
 ```

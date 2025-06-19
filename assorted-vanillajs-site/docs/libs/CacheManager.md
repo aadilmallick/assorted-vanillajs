@@ -16,6 +16,12 @@ export class CacheStorageModel {
     return cache;
   }
 
+  async deleteOldCaches() {
+    const cacheNames = await caches.keys();
+    const oldCaches = cacheNames.filter((name) => name !== this.cacheName);
+    await Promise.all(oldCaches.map((name) => caches.delete(name)));
+  }
+
   async addAll(requests: string[]) {
     if (!this.cache) {
       this.cache = await this.openCache();
@@ -70,7 +76,7 @@ export class CacheStorageModel {
  * A class for implementing caching strategies with service workers
  */
 export class CacheStrategist {
-  private cacheStorage: CacheStorageModel;
+  public cacheStorage: CacheStorageModel;
   constructor(public readonly cacheName: string) {
     this.cacheStorage = new CacheStorageModel(cacheName);
   }
