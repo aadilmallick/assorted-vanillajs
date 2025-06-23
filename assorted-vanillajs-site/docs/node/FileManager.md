@@ -19,6 +19,19 @@ export class FileManager {
     }
   }
 
+  static async removeDirectory(directoryPath: string) {
+    if (await this.exists(directoryPath)) {
+      await fs.rm(directoryPath, { recursive: true, force: true });
+    }
+  }
+
+  static async renameFile(oldPath: string, newPath: string) {
+    if (!(await this.exists(oldPath))) {
+      throw new Error(`File not found: ${oldPath}`);
+    }
+    await fs.rename(oldPath, newPath);
+  }
+
   static async createFile(
     filepath: string,
     content: string,
@@ -126,5 +139,68 @@ export function sanitizeFilename(filename: string) {
   newFilename = crypto.randomUUID().slice(0, 12) + "-" + newFilename;
   newFilename = newFilename.replace(/\s/g, "_");
   return newFilename.slice(0, Math.min(50, newFilename.length));
+}
+```
+
+## Exporting to path
+
+```ts
+class PathManager {
+  static async getShellProfileContents() {
+  // Detect the user's shell and profile file
+  const shell = process.env.SHELL || "";
+  let profileFile = "";
+  if (shell.includes("zsh")) {
+    profileFile = path.join(os.homedir(), ".zshrc");
+  } else if (shell.includes("bash")) {
+    profileFile = path.join(os.homedir(), ".bashrc");
+  } else {
+    // fallback
+    profileFile = path.join(os.homedir(), ".profile");
+  }
+
+  // Check if already present
+  let content = "";
+  try {
+    content = await fs.readFile(profileFile, { encoding: "utf-8" });
+  } catch (e) {
+    console.error(e);
+    // File may not exist, will be created
+  }
+  return { profileFile, content };
+}
+
+static async addToPath(folderPath: string) {
+  const { profileFile, content } = await getShellProfileContents();
+  const exportLine = `export PATH="$PATH:${folderPath}"\n`;
+
+  if (content.includes(exportLine.trim())) {
+    console.log(`${folderPath} already in your PATH.`);
+    return false
+  }
+
+  // Append to profile
+  await fs.appendFile(profileFile, exportLine);
+  console.log(`Added ${folderPath} to your PATH in ${profileFile}.`);
+  console.log(`Please run: source ${profileFile} or restart your terminal.`);
+  return true;
+}
+
+static async removeFromPath(folderPath: string) {
+  const { profileFile, content } = await getShellProfileContents();
+
+  const exportLine = `export PATH="$PATH:${folderPath}"\n`;
+
+  if (content.includes(exportLine.trim())) {
+    const newContent = content.replace(exportLine, "");
+    await fs.writeFile(profileFile, newContent);
+    console.log(`Removed ${folderPath} from your PATH in ${profileFile}.`);
+    console.log(`Please run: source ${profileFile} or restart your terminal.`);
+    return true;
+  } else {
+    console.log(`${folderPath} not found in your PATH.`);
+    return false;
+  }
+}
 }
 ```
